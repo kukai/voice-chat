@@ -1,6 +1,7 @@
 import speech_recognition as sr
 import openai
 import os
+from dotenv import load_dotenv
 import pygame
 import time
 import json
@@ -12,6 +13,9 @@ from io import BytesIO
 import wave
 from mcp_controller import MCPController
 from typing import List, Dict, Any, Generator
+
+# 環境変数の読み込み
+load_dotenv(verbose=True)
 
 # ロガーの設定
 logging.basicConfig(
