@@ -19,6 +19,7 @@
 - スピーカー（音声出力用）
 - OpenAI APIキー（GPT-3.5、Whisper、TTSに使用）
 - OpenWeatherMap APIキー（天気情報の取得に使用）
+- 音声入力用の依存パッケージ（OS別にインストールが必要）
 
 ## セットアップ
 
@@ -37,8 +38,25 @@ venv\Scripts\activate
 source venv/bin/activate
 ```
 
-3. 必要なパッケージをインストール
+3. 基本パッケージのインストール
 ```bash
+# pip自体のアップグレード
+python -m pip install --upgrade pip
+
+# 基本パッケージのインストール
+pip install setuptools wheel
+
+# PyAudioの依存パッケージをインストール（OS別）
+# macOSの場合
+brew install portaudio
+
+# Ubuntuの場合
+sudo apt-get install python3-pyaudio portaudio19-dev
+
+# Windows（Visual C++ 14.0以上が必要）
+# https://visualstudio.microsoft.com/visual-cpp-build-tools/ からBuild Toolsをインストール
+
+# 必要なパッケージをインストール
 pip install -r requirements.txt
 ```
 
@@ -87,6 +105,7 @@ python voice_chat_ai.py
 1. マイクが認識されない場合
    - システムの音声入力設定を確認
    - マイクのアクセス権限を確認
+   - PyAudioが正しくインストールされているか確認
 
 2. 音声が出力されない場合
    - システムの音声出力設定を確認
@@ -102,6 +121,34 @@ python voice_chat_ai.py
    - サーバーが起動しているか確認（デフォルト: http://localhost:8000）
    - `MCP_API_KEY`が正しく設定されているか確認
 
+5. パッケージ関連のエラーが発生する場合
+   - 仮想環境が有効になっているか確認
+   - `pip list`で必要なパッケージがインストールされているか確認
+   - 以下のコマンドでパッケージを再インストール：
+     ```bash
+     pip uninstall -y -r requirements.txt
+     pip install --no-cache-dir -r requirements.txt
+     ```
+   - "no module named pkg_resources"エラーの場合：
+     ```bash
+     pip install --upgrade setuptools
+     pip install --no-cache-dir -r requirements.txt
+     ```
+   - "Could not find PyAudio"エラーの場合：
+     ```bash
+     # macOS
+     brew install portaudio
+     pip install PyAudio
+     
+     # Ubuntu
+     sudo apt-get install python3-pyaudio portaudio19-dev
+     pip install PyAudio
+     
+     # Windows
+     pip install pipwin
+     pipwin install PyAudio
+     ```
+
 ## ライセンス
 
-MIT 
+MITライセンス 
