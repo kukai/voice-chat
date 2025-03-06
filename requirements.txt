@@ -1,0 +1,12 @@
+fastapi>=0.104.0
+uvicorn>=0.24.0
+SpeechRecognition>=3.10.0
+openai>=1.3.0
+pygame>=2.5.0
+python-dotenv>=1.0.0
+pydantic>=2.4.0
+requests>=2.31.0
+pyowm>=3.3.0  # OpenWeatherMap APIクライアント
+pykakasi>=2.2.1  # 日本語-ローマ字変換
+sounddevice>=0.4.6  # リアルタイムオーディオ出力
+numpy>=1.24.0  # オーディオデータ処理 
