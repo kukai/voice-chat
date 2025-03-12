@@ -464,39 +464,98 @@ def listen_to_speech():
 def get_ai_response(text: str) -> str:
     """ChatGPTを使用して応答を生成する"""
     try:
-        # まず、MCPコマンドとして処理を試みる
-        command_response = process_command(text)
-        if command_response:
-            return command_response
+        # Function callingのための関数定義
+        functions = [
+            {
+                "name": "get_weather",
+                "description": "指定された都市の天気情報を取得します",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "city": {
+                            "type": "string",
+                            "description": "天気を知りたい都市名（例：東京、大阪）"
+                        }
+                    },
+                    "required": ["city"]
+                }
+            },
+            {
+                "name": "get_system_info",
+                "description": "システム情報を取得します",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "info_type": {
+                            "type": "string",
+                            "description": "取得したい情報のタイプ（cpu, memory, files）",
+                            "enum": ["cpu", "memory", "files"]
+                        }
+                    },
+                    "required": ["info_type"]
+                }
+            },
+            {
+                "name": "get_time",
+                "description": "現在の時刻情報を取得します",
+                "parameters": {
+                    "type": "object",
+                    "properties": {}
+                }
+            }
+        ]
 
-        # サーバーから利用可能なコマンドを取得
-        status = mcp.get_status()
-        available_commands = status.get("commands", []) if status else []
-        
-        # 動的なシステムプロンプトを生成
-        system_content = """あなたは音声対話AIアシスタントです。
-以下のような日本語の自然な命令を理解できます：
-"""
-        if available_commands:
-            system_content += "\n".join([f"- 「{cmd}」" for cmd in available_commands])
-        else:
-            system_content += "（現在サーバーからコマンド情報を取得できません）"
-        
-        system_content += "\nユーザーの意図を理解し、適切な応答やアクションを提供してください。"
-
-        # 通常のチャット応答を生成
+        # OpenAI APIを呼び出し
         client = openai.OpenAI()
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
-                {"role": "system", "content": system_content},
+                {"role": "system", "content": "あなたは音声対話AIアシスタントです。ユーザーの要求に応じて適切な情報を提供してください。"},
                 {"role": "user", "content": text}
-            ]
+            ],
+            functions=functions,
+            function_call="auto"
         )
-        return response.choices[0].message.content
+
+        # レスポンスを処理
+        message = response.choices[0].message
+
+        # 関数呼び出しが必要な場合
+        if message.function_call:
+            # 関数名と引数を取得
+            function_name = message.function_call.name
+            function_args = json.loads(message.function_call.arguments)
+
+            # 関数を実行
+            if function_name == "get_weather":
+                result = mcp.get_weather(function_args.get("city", "東京"))
+            elif function_name == "get_system_info":
+                result = mcp.get_system_info(function_args.get("info_type"))
+            elif function_name == "get_time":
+                result = mcp.get_time()
+            else:
+                return "申し訳ありません。その操作は実行できません。"
+
+            # 関数の結果を使って2回目の応答を生成
+            second_response = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": "あなたは音声対話AIアシスタントです。ユーザーの要求に応じて適切な情報を提供してください。"},
+                    {"role": "user", "content": text},
+                    {"role": "function", "name": function_name, "content": json.dumps(result, ensure_ascii=False)},
+                ],
+                functions=functions
+            )
+
+            # 最終的な応答を返す
+            return second_response.choices[0].message.content
+        
+        # 関数呼び出しが不要な場合は直接応答を返す
+        return message.content
+
     except Exception as e:
-        print(f"エラーが発生しました: {str(e)}")
-        return None
+        logger.error(f"エラーが発生しました: {str(e)}", exc_info=True)
+        return "申し訳ありません。エラーが発生しました。"
 
 def display_available_commands():
     """利用可能なコマンドを表示"""
